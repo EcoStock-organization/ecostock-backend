@@ -6,6 +6,7 @@ class PerfilUsuario(models.Model):
     class Cargo(models.TextChoices):
         ADMIN = 'ADMIN', 'Administrador'
         GERENTE = 'GERENTE', 'Gerente'
+        OPERADOR = 'OPERADOR', 'Operador de Caixa'
 
     usuario_id_auth = models.IntegerField(unique=True, help_text="ID do usuário no serviço de Autenticação")
     

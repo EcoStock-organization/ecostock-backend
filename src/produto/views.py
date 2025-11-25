@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 
-from .models import Produto
-from .serializers import ProdutoSerializer
+from .models import Produto, Categoria
+from .serializers import ProdutoSerializer, CategoriaSerializer
 
 
 class ProdutoListCreateView(generics.ListCreateAPIView):
@@ -20,3 +20,13 @@ class ProdutoDetailView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         instance.esta_ativo = False
         instance.save()
+
+class CategoriaListCreateView(generics.ListCreateAPIView):
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class CategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+    permission_classes = [permissions.IsAuthenticated]

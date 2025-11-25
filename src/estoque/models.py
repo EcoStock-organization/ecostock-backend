@@ -5,7 +5,7 @@ from produto.models import Produto
 
 
 class ItemEstoque(models.Model):
-    produto = models.ForeignKey(Produto, on_delete=models.PROTECT)
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
     filial = models.ForeignKey(Filial, on_delete=models.CASCADE, related_name="itens_estoque")
 
     quantidade_atual = models.FloatField(default=0.0)

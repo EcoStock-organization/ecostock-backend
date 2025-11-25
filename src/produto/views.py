@@ -17,10 +17,6 @@ class ProdutoDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProdutoSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_destroy(self, instance):
-        instance.esta_ativo = False
-        instance.save()
-
 class CategoriaListCreateView(generics.ListCreateAPIView):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer

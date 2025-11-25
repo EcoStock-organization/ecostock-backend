@@ -19,7 +19,7 @@ class Venda(models.Model):
         FINALIZADA = "FINALIZADA", "Finalizada"
         CANCELADA = "CANCELADA", "Cancelada"
 
-    filial = models.ForeignKey(Filial, on_delete=models.PROTECT)
+    filial = models.ForeignKey(Filial, on_delete=models.CASCADE)
     usuario_id = models.IntegerField(
         help_text="ID do usuário (do serviço de Auth) que realizou a venda"
     )
@@ -74,7 +74,7 @@ class Venda(models.Model):
 
 class ItemVenda(models.Model):
     venda = models.ForeignKey(Venda, on_delete=models.CASCADE, related_name="itens_venda")
-    produto = models.ForeignKey(Produto, on_delete=models.PROTECT)
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
 
     quantidade_vendida = models.FloatField()
 

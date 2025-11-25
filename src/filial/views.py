@@ -16,7 +16,3 @@ class FilialDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Filial.objects.all()
     serializer_class = FilialSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def perform_destroy(self, instance):
-        instance.esta_ativa = False
-        instance.save()

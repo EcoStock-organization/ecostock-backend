@@ -75,20 +75,14 @@ class TestesAPIProduto(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("codigo_barras", response.data)
 
-    def test_deletar_produto_soft_delete_sucesso(self):
+    def test_deletar_produto_hard_delete_sucesso(self):
         url = reverse("produto:produto-detalhe", kwargs={"pk": self.produto.pk})
         response = self.client.delete(url)
-
+        
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-        self.produto.refresh_from_db()
-        self.assertEqual(Produto.objects.count(), 1)
-
-        self.assertEqual(self.produto.esta_ativo, False)
-
-        response_lista = self.client.get(reverse("produto:produto-lista-criar"))
-        self.assertEqual(response_lista.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response_lista.data), 0)
+        
+        existe = Produto.objects.filter(pk=self.produto.pk).exists()
+        self.assertFalse(existe, "O produto deveria ter sido deletado do banco")
 
     def test_criar_produto_dados_invalidos_parametrizado(self):
         url = reverse("produto:produto-lista-criar")

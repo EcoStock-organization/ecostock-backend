@@ -3,8 +3,9 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from .models import Filial
+from estoque.models import ItemEstoque
+from produto.models import Produto
 
 
 class TestesAPIFilial(APITestCase):
@@ -82,17 +83,20 @@ class TestesAPIFilial(APITestCase):
         self.filial.refresh_from_db()
         self.assertEqual(self.filial.nome, "Filial Teste ATUALIZADA")
 
-    def test_deletar_filial_soft_delete_sucesso(self):
-        url = reverse("filial:filial-detalhe", kwargs={"pk": self.filial.pk})
+    def test_deletar_filial_hard_delete_com_cascade(self):
+        prod = Produto.objects.create(
+            codigo_barras="999", nome="Prod Cascade", tipo_produto="UNITARIO"
+        )
+        ItemEstoque.objects.create(
+            filial=self.filial, produto=prod, 
+            quantidade_atual=10, preco_venda_atual=10, quantidade_minima_estoque=5
+        )
+
+        url = reverse('filial:filial-detalhe', kwargs={'pk': self.filial.pk})
         response = self.client.delete(url)
-
+        
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        self.assertFalse(Filial.objects.filter(pk=self.filial.pk).exists())
 
-        self.filial.refresh_from_db()
-        self.assertEqual(Filial.objects.count(), 1)
-
-        self.assertEqual(self.filial.esta_ativa, False)
-
-        response_lista = self.client.get(reverse("filial:filial-lista-criar"))
-        self.assertEqual(response_lista.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response_lista.data), 0)
+        self.assertFalse(ItemEstoque.objects.filter(filial=self.filial).exists())

@@ -1,26 +1,40 @@
-from rest_framework import permissions, status, viewsets
+import logging
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import transaction
 from django.shortcuts import get_object_or_404
-from .models import FormaPagamento, Venda, ItemVenda
+from .models import Venda, ItemVenda, FormaPagamento
+from .serializers import VendaSerializer, AdicionarItemVendaSerializer, ItemVendaSerializer
 from estoque.models import ItemEstoque
-from .serializers import (
-    AdicionarItemVendaSerializer,
-    ItemVendaSerializer,
-    VendaSerializer,
-)
+from usuario.models import PerfilUsuario
+
+logger = logging.getLogger(__name__)
 
 class VendaViewSet(viewsets.ModelViewSet):
-    queryset = Venda.objects.all()
     serializer_class = VendaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Venda.objects.filter(usuario_id=self.request.user.id)
+        user = self.request.user
+        try:
+            perfil = PerfilUsuario.objects.get(usuario_id_auth=user.id)
+            
+            if perfil.cargo == 'ADMIN':
+                return Venda.objects.all().order_by('-data_venda')
+            
+            if perfil.cargo == 'GERENTE' and perfil.filial:
+                return Venda.objects.filter(filial=perfil.filial).order_by('-data_venda')
+                
+            return Venda.objects.filter(usuario_id=user.id).order_by('-data_venda')
+            
+        except PerfilUsuario.DoesNotExist:
+            if user.is_staff:
+                return Venda.objects.all()
+            return Venda.objects.none()
 
     def perform_create(self, serializer):
-        usuario_id = self.request.user.id
-        serializer.save(usuario_id=usuario_id)
+        serializer.save(usuario_id=self.request.user.id)
 
     @action(detail=True, methods=["post"], serializer_class=AdicionarItemVendaSerializer)
     def adicionar_item(self, request, pk=None):
@@ -51,14 +65,15 @@ class VendaViewSet(viewsets.ModelViewSet):
             if nova_quantidade <= 0:
                 raise ValueError
         except ValueError:
-             return Response({"detail": "Qtd deve ser maior que zero."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Qtd deve ser maior que zero."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             item_estoque = ItemEstoque.objects.get(filial=venda.filial, produto=item_venda.produto)
-            if item_estoque.quantidade_atual < nova_quantidade:
-                return Response({"detail": f"Estoque insuficiente. Disp: {item_estoque.quantidade_atual}"}, status=status.HTTP_400_BAD_REQUEST)
+            diferenca = nova_quantidade - item_venda.quantidade_vendida
+            if diferenca > 0 and item_estoque.quantidade_atual < diferenca:
+                 return Response({"detail": f"Estoque insuficiente para adicionar +{diferenca} un."}, status=status.HTTP_400_BAD_REQUEST)
         except ItemEstoque.DoesNotExist:
-             return Response({"detail": "Item não encontrado no estoque."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Item não encontrado no estoque."}, status=status.HTTP_400_BAD_REQUEST)
 
         item_venda.quantidade_vendida = nova_quantidade
         item_venda.save()
